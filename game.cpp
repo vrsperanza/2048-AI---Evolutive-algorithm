@@ -40,10 +40,8 @@ class game{
         }
     }
 
-    bool move(char dir){
+    void move(char dir){
         direction = dir;
-
-        cout << "MOVE: " << (int)dir << endl;
 
         for(char i = 0; i < 4; i++){
             for(char j = 0; j < 3; j++){
@@ -71,11 +69,15 @@ class game{
                     }
                 }
             }
-
-            printMap();
         }
+    }
 
-        cout << "MOVED" << endl;
+    int score(){
+        int tot = 0;
+        for(int i = 0; i < 4; i++)
+            for(int j = 0; j < 4; j++)
+                tot += (1 << (int)getMapNorm(i, j));
+        return tot;
     }
 
     void printMap(){
@@ -92,6 +94,37 @@ class game{
         cout << "------------------------------------------------------" << endl;
     }
 
+    bool spawn(){
+        bool dead = true;
+        for(int i = 0; i < 4; i++){
+            for(int j = 0; j < 4; j++){
+                if(getMapNorm(i, j) == 0){
+                    dead = false;
+                    break;
+                }
+            }
+
+            if(!dead)
+                break;
+        }
+
+        if(dead)
+            return false;
+
+        while(1){
+            int r = rand();
+            int i = (r & 0b11000) >> 3;
+            int j = (r & 0b110) >> 1;
+
+            if(getMapNorm(i, j) == 0){
+                setMapNorm(i, j, (r & 0b1) + 1);
+                break;
+            }
+        }
+
+        return true;
+    }
+
     game(){
         map = 0;
         direction = 0;
@@ -103,30 +136,9 @@ int main(){
     game g;
 
     while(1){
-        bool dead = true;
-        for(int i = 0; i < 4; i++){
-            for(int j = 0; j < 4; j++){
-                if(g.getMapNorm(i, j) == 0){
-                    dead = false;
-                    break;
-                }
-            }
-
-            if(!dead)
-                break;
-        }
-
-        if(dead)
+        if(!g.spawn()){
+            cout << g.score();
             break;
-
-        while(1){
-            int i = rand()%4;
-            int j = rand()%4;
-
-            if(g.getMapNorm(i, j) == 0){
-                g.setMapNorm(i, j, rand()%2 + 1);
-                break;
-            }
         }
 
         g.printMap();
