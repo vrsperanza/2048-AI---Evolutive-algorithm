@@ -1,6 +1,9 @@
 #ifndef _GAME_H_
 #define _GAME_H_
 
+#include <vector>
+using namespace std;
+
 class game{
     private:
     char direction;
@@ -13,7 +16,7 @@ class game{
     public:
     int score;
     unsigned long long map;
-    bool move(char dir);
+    bool move(vector<char> dir);
     void humanGame();
     void printMap();
     bool spawn();

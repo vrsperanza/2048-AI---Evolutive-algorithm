@@ -11,7 +11,9 @@
         "vector": "cpp",
         "initializer_list": "cpp",
         "random": "cpp",
-        "xstring": "cpp"
+        "xstring": "cpp",
+        "xlocale": "cpp",
+        "xlocnum": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

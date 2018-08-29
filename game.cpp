@@ -74,15 +74,10 @@ bool game::innerMove(char dir){
     return change;
 }
 
-bool game::move(char dir){
-    if(innerMove(dir))
-        return true;
-    for(int i = dir+1; i != dir; i++){
-        i %= 4;
-        if(innerMove(i));
+bool game::move(vector<char> dir){
+    for(char c : dir)
+        if(innerMove(c))
             return true;
-    }
-
     return false;
 }
 
@@ -149,8 +144,12 @@ void game::humanGame(){
         char c;
         cin >> c;
         char id = c == 'w' ? 0 : c == 'a' ? 1 : c == 's' ? 2 : 3;
-
-        g.move(id);
+        vector<char> move;
+        move.push_back(id);
+        while(!g.move(move)){
+            cin >> c;
+            id = c == 'w' ? 0 : c == 'a' ? 1 : c == 's' ? 2 : 3;
+        }
     }
 
     cout << g.score << endl;

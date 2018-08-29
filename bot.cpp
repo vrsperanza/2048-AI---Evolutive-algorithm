@@ -19,7 +19,7 @@ class bot{
     public:
 
     #define sigmoid(x) 1 / (1 + exp((double) -x))
-    #define hiddenLayerSize 4
+    #define hiddenLayerSize 8
 
     double l0[hiddenLayerSize][16 * 16];
     double l0out[hiddenLayerSize];
@@ -30,7 +30,7 @@ class bot{
     int totalScore = 0;
     int gamesPlayed = 0;
 
-    char getMove(long long map){
+    vector<char> getMove(long long map){
         for(int i = 0; i < hiddenLayerSize; i++){
             double tot = 0;
             for(int j = 0; j < 16; j++)
@@ -54,7 +54,17 @@ class bot{
             }
         }
 
-        return maxId;
+        vector<pair<double, char> > v;
+        
+        for(char i = 0; i < 4; i++)
+            v.push_back(make_pair(l1out[i], i));
+        sort(v.rbegin(), v.rend());
+        vector<char> move;
+
+        for(char i = 0; i < 4; i++)
+            move.push_back(v[i].second);
+
+        return move;
     }
 
     int play(){
@@ -124,6 +134,8 @@ int main(){
     vector<double> bestAverageScoreHistory;
 
     while(1){
+
+        /*
         bestAverageScoreHistory.push_back(bots[bots.size()-1].averageScore);
 
         if(bestAverageScoreHistory.size() > 100){
@@ -134,10 +146,11 @@ int main(){
             if(stuck)
                 break;
         }
+        */
 
         for(int i = 0; i < bots.size(); i++)
             bots[i].play();
-        
+
         while(!is_sorted(bots.begin(), bots.end())){
             sort(bots.begin(), bots.end());
 
