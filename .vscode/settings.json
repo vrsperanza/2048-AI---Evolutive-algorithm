@@ -5,7 +5,13 @@
         "ios": "cpp",
         "iosfwd": "cpp",
         "type_traits": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "cmath": "cpp",
+        "algorithm": "cpp",
+        "vector": "cpp",
+        "initializer_list": "cpp",
+        "random": "cpp",
+        "xstring": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

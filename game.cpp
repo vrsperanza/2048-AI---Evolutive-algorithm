@@ -20,8 +20,8 @@ void game::setMapNorm(int i, int j, char newVal){
 char game::getMap(char i, char j){
     switch(direction){
         case 0: return (map >> up(i, j)) & 0xF;
-        case 1: return (map >> down(i, j)) & 0xF;
-        case 2: return (map >> left(i, j)) & 0xF;
+        case 1: return (map >> left(i, j)) & 0xF;
+        case 2: return (map >> down(i, j)) & 0xF;
         case 3: return (map >> right(i, j)) & 0xF;
     }
 }
@@ -29,15 +29,16 @@ char game::getMap(char i, char j){
 void game::setMap(char i, char j, char newVal){
     switch(direction){
         case 0: map = ((map & ~(((long long)0xF) << up(i, j))) | ((long long)newVal << up(i, j))); return;
-        case 1: map = ((map & ~(((long long)0xF) << down(i, j))) | ((long long)newVal << down(i, j))); return;
-        case 2: map = ((map & ~(((long long)0xF) << left(i, j))) | ((long long)newVal << left(i, j))); return;
+        case 1: map = ((map & ~(((long long)0xF) << left(i, j))) | ((long long)newVal << left(i, j))); return;
+        case 2: map = ((map & ~(((long long)0xF) << down(i, j))) | ((long long)newVal << down(i, j))); return;
         case 3: map = ((map & ~(((long long)0xF) << right(i, j))) | ((long long)newVal << right(i, j))); return;
     }
 }
 
-void game::move(char dir){
+bool game::innerMove(char dir){
     direction = dir;
 
+    bool change = false;
     for(char i = 0; i < 4; i++){
         for(char j = 0; j < 3; j++){
             if(getMap(i, j) == 0){
@@ -45,6 +46,7 @@ void game::move(char dir){
                     if(getMap(i, k) != 0){
                         setMap(i, j, getMap(i, k));
                         setMap(i, k, 0);
+                        change = true;
                         break;
                     }
                 }
@@ -58,6 +60,9 @@ void game::move(char dir){
                     if(getMap(i, j) == getMap(i, k)){
                         setMap(i, k, 0);
                         setMap(i, j, getMap(i, j) + 1);
+
+                        score += (1 << getMap(i, j));
+                        change = true;
                     }
 
                     break;
@@ -65,17 +70,26 @@ void game::move(char dir){
             }
         }
     }
+
+    return change;
 }
 
-int game::score(){
-    int tot = 0;
-    for(int i = 0; i < 4; i++)
-        for(int j = 0; j < 4; j++)
-            tot += (1 << (int)getMapNorm(i, j));
-    return tot;
+bool game::move(char dir){
+    if(innerMove(dir))
+        return true;
+    for(int i = dir+1; i != dir; i++){
+        i %= 4;
+        if(innerMove(i));
+            return true;
+    }
+
+    return false;
 }
 
 void game::printMap(){
+    string s = direction == 0 ? "UP" : direction == 1 ? "LEFT" : direction == 2 ? "DOWN" : "RIGHT";
+    cout << "Move: " << s << endl;
+
     for(int i = 0; i < 4; i++){
         for(int j = 0; j < 4; j++){
             int x = (1 << (int)getMapNorm(i, j));
@@ -108,11 +122,11 @@ bool game::spawn(){
 
     while(1){
         int r = rand();
-        int i = (r & 0b11000) >> 3;
-        int j = (r & 0b110) >> 1;
+        int i = (r & 0b1100) >> 2;
+        int j = (r & 0b11);
 
         if(getMapNorm(i, j) == 0){
-            setMapNorm(i, j, (r & 0b1) + 1);
+            setMapNorm(i, j, ((r >> 4) % 10 == 0) + 1);
             break;
         }
     }
@@ -123,4 +137,21 @@ bool game::spawn(){
 game::game(){
     map = 0;
     direction = 0;
+    score = 0;
+}
+
+void game::humanGame(){
+    game g;
+    while(g.spawn()){
+        cout << g.score << endl;
+        g.printMap();
+
+        char c;
+        cin >> c;
+        char id = c == 'w' ? 0 : c == 'a' ? 1 : c == 's' ? 2 : 3;
+
+        g.move(id);
+    }
+
+    cout << g.score << endl;
 }

@@ -8,11 +8,13 @@ class game{
     void setMapNorm(int i, int j, char newVal);
     char getMap(char i, char j);
     void setMap(char i, char j, char newVal);
+    bool innerMove(char dir);
 
     public:
+    int score;
     unsigned long long map;
-    void move(char dir);
-    int score();
+    bool move(char dir);
+    void humanGame();
     void printMap();
     bool spawn();
     game();
