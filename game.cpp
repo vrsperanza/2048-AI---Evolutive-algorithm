@@ -82,8 +82,9 @@ bool game::move(vector<char> dir){
 }
 
 void game::printMap(){
-    string s = direction == 0 ? "UP" : direction == 1 ? "LEFT" : direction == 2 ? "DOWN" : "RIGHT";
-    cout << "Move: " << s << endl;
+    //string s = direction == 0 ? "UP" : direction == 1 ? "LEFT" : direction == 2 ? "DOWN" : "RIGHT";
+    //cout << "Move: " << s << endl;
+    cout << "Score: " << score << endl;
 
     for(int i = 0; i < 4; i++){
         for(int j = 0; j < 4; j++){

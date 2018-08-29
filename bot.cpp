@@ -19,7 +19,7 @@ class bot{
     public:
 
     #define sigmoid(x) 1 / (1 + exp((double) -x))
-    #define hiddenLayerSize 8
+    #define hiddenLayerSize 16
 
     double l0[hiddenLayerSize][16 * 16];
     double l0out[hiddenLayerSize];
@@ -29,6 +29,8 @@ class bot{
     double averageScore = 0;
     int totalScore = 0;
     int gamesPlayed = 0;
+
+    int id;
 
     vector<char> getMove(long long map){
         for(int i = 0; i < hiddenLayerSize; i++){
@@ -67,10 +69,7 @@ class bot{
         return move;
     }
 
-    int play(){
-        if(gamesPlayed >= 50)
-            return averageScore;
-
+    void play(){
         game g;
         while(g.spawn())
             g.move(getMove(g.map));
@@ -78,7 +77,15 @@ class bot{
         totalScore += g.score;
         gamesPlayed++;
         averageScore = totalScore / (double)gamesPlayed;
-        return g.score;
+
+        return;
+    }
+
+    void playAndShow(){
+        game g;
+        while(g.spawn())
+            g.move(getMove(g.map));
+        g.printMap();
     }
 
     bot(){
@@ -91,6 +98,8 @@ class bot{
             for(int j = 0; j < hiddenLayerSize; j++)
                 l1[i][j] = fRand();
         }
+
+        id = rand();
     }
 
     crossOver(bot a, bot b, double mutationRate, double mutationSize){
@@ -117,6 +126,8 @@ class bot{
         averageScore = 0;
         gamesPlayed = 0;
         totalScore = 0;
+
+        id = rand();
     }
 
 	bool operator<(const bot& b) const {
@@ -133,21 +144,18 @@ int main(){
 
     vector<double> bestAverageScoreHistory;
 
+
+    double mutationMultiplier = 1;
+    int mutationFactor = 0;
+
+    double bestStableScore = 0;
+    double bestScore = 0;
+    int bestId = -1;
+    int bestStableId = -1;
+    int currStability = 0;
+    int updateStableScoreCounter = 0;
+
     while(1){
-
-        /*
-        bestAverageScoreHistory.push_back(bots[bots.size()-1].averageScore);
-
-        if(bestAverageScoreHistory.size() > 100){
-            bool stuck = true;
-            for(int i = bestAverageScoreHistory.size()-100; i < bestAverageScoreHistory.size(); i++)
-                if(bestAverageScoreHistory[i] != bestAverageScoreHistory[bestAverageScoreHistory.size()-1])
-                    stuck = false;
-            if(stuck)
-                break;
-        }
-        */
-
         for(int i = 0; i < bots.size(); i++)
             bots[i].play();
 
@@ -163,21 +171,49 @@ int main(){
             bots[bots.size()-1].play();
         }
 
-        for(int i = 0; i < bots.size()-3; i++)
-            bots[i].crossOver(bots[rand()%bots.size()], bots[bots.size() - 1 - (rand()%bots.size())/2], 0.1, 1);
+        bestScore = bots[bots.size()-1].averageScore;
+        bestId = bots[bots.size()-1].id;
 
-        cout << gens << " " << bots[bots.size()-1].averageScore << endl;
+        if(bestId != bestStableId){
+            currStability = 0;
+            updateStableScoreCounter++;
+        } else {
+            updateStableScoreCounter = 0;
+            currStability++;
+        }
+
+        if(updateStableScoreCounter >= 10){
+            bestStableScore = bestScore;
+            bestStableId = bestId;
+            mutationMultiplier = 1;
+            mutationFactor = 0;
+        }
+
+        if(currStability >= 50){
+            mutationFactor++;
+            currStability = 0;
+
+            if(mutationFactor < 20)
+                mutationMultiplier = 1 / double(1 << mutationFactor);
+            else if(mutationFactor < 40)
+                mutationMultiplier = (1 << (mutationFactor-20));
+            else{
+                mutationFactor = 0;
+                cout << "MUTATION RESET" << endl;
+            }
+        }
+
+        for(int i = 0; i < bots.size()-3; i++)
+            bots[i].crossOver(bots[rand()%bots.size()], bots[bots.size() - 1 - (rand()%bots.size())/2], mutationMultiplier * 0.1, mutationMultiplier * 1);
+
+        cout << "Generation: " << gens << endl;
+        cout << "Best average score: " << bots[bots.size()-1].averageScore << endl;
+        cout << "Best id: " << bestId << endl;
+        cout << "Best stable average score: " << bestStableScore << endl;
+        cout << "Best stable id: " << bestStableId << endl;
+        cout << "Stability: " << currStability << endl;
+        cout << "Mutation rate: " << mutationMultiplier << endl;
+        bots[bots.size()-1].playAndShow();
         gens++;
     }
-
-    bot b = bots[bots.size()-1];
-
-    game g;
-
-    while(g.spawn()){
-        g.move(b.getMove(g.map));
-        g.printMap();
-    }
-
-    cout << g.score << endl;
 }
