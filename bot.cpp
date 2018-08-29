@@ -70,6 +70,9 @@ class bot{
     }
 
     void play(){
+        if(gamesPlayed >= 50)
+            return;
+
         game g;
         while(g.spawn())
             g.move(getMove(g.map));
@@ -138,7 +141,7 @@ class bot{
 int main(){
     srand(time(NULL));
 
-    vector<bot> bots(32);
+    vector<bot> bots(64);
 
     int gens = 0;
 
@@ -152,6 +155,7 @@ int main(){
     double bestScore = 0;
     int bestId = -1;
     int bestStableId = -1;
+    int lastBestId = -1;
     int currStability = 0;
     int updateStableScoreCounter = 0;
 
@@ -159,7 +163,8 @@ int main(){
         for(int i = 0; i < bots.size(); i++)
             bots[i].play();
 
-        while(!is_sorted(bots.begin(), bots.end())){
+        sort(bots.begin(), bots.end());
+        /*while(!is_sorted(bots.begin(), bots.end())){
             sort(bots.begin(), bots.end());
 
             for(int i = bots.size()-8; i < bots.size(); i++)
@@ -169,18 +174,20 @@ int main(){
             for(int i = bots.size()-2; i < bots.size(); i++)
                 bots[i].play();
             bots[bots.size()-1].play();
-        }
+        }*/
 
         bestScore = bots[bots.size()-1].averageScore;
         bestId = bots[bots.size()-1].id;
 
-        if(bestId != bestStableId){
+        if(bestId == lastBestId && bestId != bestStableId){
             currStability = 0;
             updateStableScoreCounter++;
         } else {
             updateStableScoreCounter = 0;
             currStability++;
         }
+
+        lastBestId = bestId;
 
         if(updateStableScoreCounter >= 10){
             bestStableScore = bestScore;
@@ -203,8 +210,9 @@ int main(){
             }
         }
 
-        for(int i = 0; i < bots.size()-3; i++)
-            bots[i].crossOver(bots[rand()%bots.size()], bots[bots.size() - 1 - (rand()%bots.size())/2], mutationMultiplier * 0.1, mutationMultiplier * 1);
+        for(int i = 0; i < bots.size()-1; i++){
+            bots[i].crossOver(bots[bots.size() - 1  - i + (rand()%(i+1))], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
+        }
 
         cout << "Generation: " << gens << endl;
         cout << "Best average score: " << bots[bots.size()-1].averageScore << endl;
