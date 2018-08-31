@@ -9,6 +9,8 @@
 
 using namespace std;
 
+#define DefaultEvaluationIterations 10
+
 double fRand(double fMin=0, double fMax=1)
 {
     double f = (double)rand() / RAND_MAX;
@@ -26,9 +28,7 @@ class bot{
     double l1[4][hiddenLayerSize];
     double l1out[4];
 
-    double averageScore = 0;
-    int totalScore = 0;
-    int gamesPlayed = 0;
+    double averageScore;
 
     int id;
 
@@ -69,19 +69,17 @@ class bot{
         return move;
     }
 
-    void play(){
-        if(gamesPlayed >= 50)
-            return;
+    double evaluate(int iterations){
+        int totalScore = 0;
+        for(int i = 0; i < iterations; i++){
+            game g;
+            while(g.spawn())
+                g.move(getMove(g.map));
 
-        game g;
-        while(g.spawn())
-            g.move(getMove(g.map));
+            totalScore += g.score;
+        }
 
-        totalScore += g.score;
-        gamesPlayed++;
-        averageScore = totalScore / (double)gamesPlayed;
-
-        return;
+        return totalScore / (double)iterations;
     }
 
     void playAndShow(){
@@ -102,6 +100,8 @@ class bot{
                 l1[i][j] = fRand();
         }
 
+        averageScore = evaluate(DefaultEvaluationIterations);
+        
         id = rand();
     }
 
@@ -126,9 +126,7 @@ class bot{
             }
         }
 
-        averageScore = 0;
-        gamesPlayed = 0;
-        totalScore = 0;
+        averageScore = evaluate(DefaultEvaluationIterations);
 
         id = rand();
     }
@@ -141,7 +139,7 @@ class bot{
 int main(){
     srand(time(NULL));
 
-    vector<bot> bots(64);
+    vector<bot> bots(10);
 
     int gens = 0;
 
@@ -151,52 +149,26 @@ int main(){
     double mutationMultiplier = 1;
     int mutationFactor = 0;
 
-    double bestStableScore = 0;
-    double bestScore = 0;
     int bestId = -1;
-    int bestStableId = -1;
     int lastBestId = -1;
     int currStability = 0;
     int updateStableScoreCounter = 0;
 
     while(1){
-        for(int i = 0; i < bots.size(); i++)
-            bots[i].play();
-
-        sort(bots.begin(), bots.end());
-        /*while(!is_sorted(bots.begin(), bots.end())){
-            sort(bots.begin(), bots.end());
-
-            for(int i = bots.size()-8; i < bots.size(); i++)
-                bots[i].play();
-            for(int i = bots.size()-4; i < bots.size(); i++)
-                bots[i].play();
-            for(int i = bots.size()-2; i < bots.size(); i++)
-                bots[i].play();
-            bots[bots.size()-1].play();
-        }*/
-
-        bestScore = bots[bots.size()-1].averageScore;
         bestId = bots[bots.size()-1].id;
 
-        if(bestId == lastBestId && bestId != bestStableId){
-            currStability = 0;
-            updateStableScoreCounter++;
-        } else {
-            updateStableScoreCounter = 0;
+        if(bestId == lastBestId){
             currStability++;
+        }
+        else{
+            currStability = 0;
+            mutationFactor = 0;
+            mutationMultiplier = 1;
         }
 
         lastBestId = bestId;
 
-        if(updateStableScoreCounter >= 10){
-            bestStableScore = bestScore;
-            bestStableId = bestId;
-            mutationMultiplier = 1;
-            mutationFactor = 0;
-        }
-
-        if(currStability >= 50){
+        if(currStability >= 10){
             mutationFactor++;
             currStability = 0;
 
@@ -206,19 +178,20 @@ int main(){
                 mutationMultiplier = (1 << (mutationFactor-20));
             else{
                 mutationFactor = 0;
+
                 cout << "MUTATION RESET" << endl;
             }
         }
 
-        for(int i = 0; i < bots.size()-1; i++){
-            bots[i].crossOver(bots[bots.size() - 1  - i + (rand()%(i+1))], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
-        }
+        for(int i = 0; i < bots.size()-1; i++)
+            bots[i].crossOver(bots[bots.size()-1], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
+            //bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
+        bots[bots.size()-1].averageScore = bots[bots.size()-1].evaluate(DefaultEvaluationIterations);
+        sort(bots.begin(), bots.end());
 
         cout << "Generation: " << gens << endl;
         cout << "Best average score: " << bots[bots.size()-1].averageScore << endl;
-        cout << "Best id: " << bestId << endl;
-        cout << "Best stable average score: " << bestStableScore << endl;
-        cout << "Best stable id: " << bestStableId << endl;
+        cout << "True best average score: " << bots[bots.size()-1].evaluate(50) << endl;
         cout << "Stability: " << currStability << endl;
         cout << "Mutation rate: " << mutationMultiplier << endl;
         bots[bots.size()-1].playAndShow();
