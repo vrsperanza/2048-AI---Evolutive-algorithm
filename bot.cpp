@@ -185,8 +185,10 @@ int main(){
             }
         }
 
-        for(int i = 0; i < bots.size()-1; i++)
-            //bots[i].crossOver(bots[bots.size()-1], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
+        //for(int i = 0; i < bots.size()-1; i++)
+        //    bots[i].crossOver(bots[bots.size()-1], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
+         
+        for(int i = 0; i < bots.size()-3; i++)
             bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
 
         for(int i = 0; i < bots.size(); i++)
