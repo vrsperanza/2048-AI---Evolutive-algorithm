@@ -135,6 +135,7 @@ class bot{
             }
         }
 
+        averageScore = (a.averageScore + b.averageScore) / 2.0;
         id = rand();
     }
 
@@ -162,6 +163,8 @@ int main(){
     int updateStableScoreCounter = 0;
 
     while(1){
+        CurrGenerationImportance = generationImportanceHalfTime/double(5*generationImportanceHalfTime+gens);
+
         bestId = bots[bots.size()-1].id;
 
         if(bestId == lastBestId){
@@ -192,9 +195,22 @@ int main(){
 
         //for(int i = 0; i < bots.size()-1; i++)
         //    bots[i].crossOver(bots[bots.size()-1], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
-         
-        for(int i = 0; i < bots.size()-3; i++)
-            bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.2, mutationMultiplier * 1);
+        
+        //for(int i = 0; i < bots.size()-3; i++)
+        //    bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.2, mutationMultiplier * 1);
+
+        for(int i = 0; i < bots.size()-8; i++){
+            int r = rand();
+            int nxt = bots.size()-1;
+            while(r & 1){
+                r >>= 1;
+                nxt--;
+            }
+            if(nxt <= i)
+                nxt = bots.size()-1;
+
+            bots[i].crossOver(bots[nxt], bots[i], mutationMultiplier * 0.2, mutationMultiplier * 1);
+        }
 
         for(int i = 0; i < bots.size(); i++)
             bots[i].updateScore();
@@ -211,7 +227,5 @@ int main(){
             bots[bots.size()-1].playAndShow();
         }
         gens++;
-
-        CurrGenerationImportance = generationImportanceHalfTime/double(generationImportanceHalfTime+gens);
     }
 }
