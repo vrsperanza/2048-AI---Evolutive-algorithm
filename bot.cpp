@@ -9,7 +9,8 @@
 
 using namespace std;
 
-#define DefaultEvaluationIterations 1
+double CurrGenerationImportance = 1;
+int generationImportanceHalfTime = 1000;
 
 double fRand(double fMin=0, double fMax=1)
 {
@@ -110,8 +111,8 @@ class bot{
         while(g.spawn())
             g.move(getMove(g.map));
 
-        averageScore += log(g.score)/5.0;
-        averageScore *= 5/6.0;
+        averageScore *= 1 - CurrGenerationImportance;
+        averageScore += log(g.score) * CurrGenerationImportance;
     }
 
     void crossOver(bot a, bot b, double mutationRate, double mutationSize){
@@ -145,7 +146,7 @@ class bot{
 int main(){
     srand(time(NULL));
 
-    vector<bot> bots(16);
+    vector<bot> bots(32);
 
     int gens = 0;
 
@@ -206,8 +207,11 @@ int main(){
             cout << "Average game score: " << bots[bots.size()-1].evaluate(100) << endl;
             cout << "Stability: " << currStability << endl;
             cout << "Mutation rate: " << mutationMultiplier << endl;
+            cout << "Curr generation importance: " << CurrGenerationImportance << endl;
             bots[bots.size()-1].playAndShow();
         }
         gens++;
+
+        CurrGenerationImportance = generationImportanceHalfTime/double(generationImportanceHalfTime+gens);
     }
 }
