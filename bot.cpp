@@ -9,7 +9,7 @@
 
 using namespace std;
 
-#define DefaultEvaluationIterations 10
+#define DefaultEvaluationIterations 1
 
 double fRand(double fMin=0, double fMax=1)
 {
@@ -21,14 +21,14 @@ class bot{
     public:
 
     #define sigmoid(x) 1 / (1 + exp((double) -x))
-    #define hiddenLayerSize 16
+    #define hiddenLayerSize 8
 
     double l0[hiddenLayerSize][16 * 16];
     double l0out[hiddenLayerSize];
     double l1[4][hiddenLayerSize];
     double l1out[4];
 
-    double averageScore;
+    double averageScore = 0;
 
     int id;
 
@@ -100,15 +100,19 @@ class bot{
                 l1[i][j] = fRand();
         }
 
-        averageScore = evaluate(DefaultEvaluationIterations);
+        averageScore = 0;
         
         id = rand();
     }
 
+    void updateScore(){
+        averageScore += evaluate(DefaultEvaluationIterations)/10.0;
+        averageScore *= 10/11.0;
+    }
+
     crossOver(bot a, bot b, double mutationRate, double mutationSize){
-        bot parents[2];
-        parents[0] = a;
-        parents[1] = b;
+        bot parents[2] = {a, b};
+
         for(int i = 0; i < hiddenLayerSize; i++){
             int parentId = fRand() < 0.5;
             for(int j = 0; j < 16 * 16; j++){
@@ -126,8 +130,6 @@ class bot{
             }
         }
 
-        averageScore = evaluate(DefaultEvaluationIterations);
-
         id = rand();
     }
 
@@ -139,7 +141,7 @@ class bot{
 int main(){
     srand(time(NULL));
 
-    vector<bot> bots(10);
+    vector<bot> bots(16);
 
     int gens = 0;
 
@@ -168,7 +170,7 @@ int main(){
 
         lastBestId = bestId;
 
-        if(currStability >= 10){
+        if(currStability >= 50){
             mutationFactor++;
             currStability = 0;
 
@@ -184,17 +186,22 @@ int main(){
         }
 
         for(int i = 0; i < bots.size()-1; i++)
-            bots[i].crossOver(bots[bots.size()-1], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
-            //bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
-        bots[bots.size()-1].averageScore = bots[bots.size()-1].evaluate(DefaultEvaluationIterations);
+            //bots[i].crossOver(bots[bots.size()-1], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
+            bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
+
+        for(int i = 0; i < bots.size(); i++)
+            bots[i].updateScore();
+
         sort(bots.begin(), bots.end());
 
-        cout << "Generation: " << gens << endl;
-        cout << "Best average score: " << bots[bots.size()-1].averageScore << endl;
-        cout << "True best average score: " << bots[bots.size()-1].evaluate(50) << endl;
-        cout << "Stability: " << currStability << endl;
-        cout << "Mutation rate: " << mutationMultiplier << endl;
-        bots[bots.size()-1].playAndShow();
+        if(gens % 100 == 0){
+            cout << "Generation: " << gens << endl;
+            cout << "Best average score: " << bots[bots.size()-1].averageScore << endl;
+            cout << "True best average score: " << bots[bots.size()-1].evaluate(100) << endl;
+            cout << "Stability: " << currStability << endl;
+            cout << "Mutation rate: " << mutationMultiplier << endl;
+            bots[bots.size()-1].playAndShow();
+        }
         gens++;
     }
 }
