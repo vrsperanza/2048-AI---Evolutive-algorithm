@@ -21,7 +21,7 @@ class bot{
     public:
 
     #define sigmoid(x) 1 / (1 + exp((double) -x))
-    #define hiddenLayerSize 8
+    #define hiddenLayerSize 16
 
     double l0[hiddenLayerSize][16 * 16];
     double l0out[hiddenLayerSize];
@@ -106,11 +106,15 @@ class bot{
     }
 
     void updateScore(){
-        averageScore += evaluate(DefaultEvaluationIterations)/10.0;
-        averageScore *= 10/11.0;
+        game g;
+        while(g.spawn())
+            g.move(getMove(g.map));
+
+        averageScore += log(g.score)/5.0;
+        averageScore *= 5/6.0;
     }
 
-    crossOver(bot a, bot b, double mutationRate, double mutationSize){
+    void crossOver(bot a, bot b, double mutationRate, double mutationSize){
         bot parents[2] = {a, b};
 
         for(int i = 0; i < hiddenLayerSize; i++){
@@ -189,7 +193,7 @@ int main(){
         //    bots[i].crossOver(bots[bots.size()-1], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
          
         for(int i = 0; i < bots.size()-3; i++)
-            bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
+            bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.2, mutationMultiplier * 1);
 
         for(int i = 0; i < bots.size(); i++)
             bots[i].updateScore();
@@ -198,8 +202,8 @@ int main(){
 
         if(gens % 100 == 0){
             cout << "Generation: " << gens << endl;
-            cout << "Best average score: " << bots[bots.size()-1].averageScore << endl;
-            cout << "True best average score: " << bots[bots.size()-1].evaluate(100) << endl;
+            cout << "Selection score: " << bots[bots.size()-1].averageScore << endl;
+            cout << "Average game score: " << bots[bots.size()-1].evaluate(100) << endl;
             cout << "Stability: " << currStability << endl;
             cout << "Mutation rate: " << mutationMultiplier << endl;
             bots[bots.size()-1].playAndShow();

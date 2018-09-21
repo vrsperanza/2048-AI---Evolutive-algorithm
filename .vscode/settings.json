@@ -14,7 +14,8 @@
         "xstring": "cpp",
         "xlocale": "cpp",
         "xlocnum": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "xmemory0": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
