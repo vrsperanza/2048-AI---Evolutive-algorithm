@@ -83,10 +83,15 @@ bool game::move(vector<char> dir){
 
 unsigned long long game::previewMove(char dir){
 	unsigned long long oldMap = map;
+	int oldScore = score;
+	
 	if(!innerMove(dir))
 		return 0;
-	unsigned long long newMap = map;
+	
+	score = oldScore;
+	unsigned long long newMap = map;	
 	map = oldMap;
+	
 	return newMap;
 }
 
