@@ -37,7 +37,7 @@ void game::setMap(char i, char j, char newVal){
 
 bool game::innerMove(char dir){
     direction = dir;
-
+	
     bool change = false;
     for(char i = 0; i < 4; i++){
         for(char j = 0; j < 3; j++){
@@ -70,7 +70,7 @@ bool game::innerMove(char dir){
             }
         }
     }
-
+	
     return change;
 }
 
@@ -79,6 +79,15 @@ bool game::move(vector<char> dir){
         if(innerMove(c))
             return true;
     return false;
+}
+
+unsigned long long game::previewMove(char dir){
+	unsigned long long oldMap = map;
+	if(!innerMove(dir))
+		return 0;
+	unsigned long long newMap = map;
+	map = oldMap;
+	return newMap;
 }
 
 void game::printMap(){

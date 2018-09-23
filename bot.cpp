@@ -5,12 +5,14 @@
 #include <random>
 #include <algorithm>
 #include <vector>
+#include <thread>
 #include "game.h"
 
 using namespace std;
 
+const int populationSize = 32;
 double CurrGenerationImportance = 1;
-int generationImportanceHalfTime = 1000;
+const int generationImportanceHalfTime = 1000;
 
 double fRand(double fMin=0, double fMax=1)
 {
@@ -25,48 +27,42 @@ class bot{
     #define hiddenLayerSize 16
 
     double l0[hiddenLayerSize][16 * 16];
+    double l0Offset[hiddenLayerSize];
     double l0out[hiddenLayerSize];
-    double l1[4][hiddenLayerSize];
-    double l1out[4];
+    double l1[hiddenLayerSize];
+    double l1Offset;
 
     double averageScore = 0;
 
     int id;
 
-    vector<char> getMove(long long map){
+	double getScore(long long map){
+		if(map == 0)
+			return -1;
+		
         for(int i = 0; i < hiddenLayerSize; i++){
             double tot = 0;
-            for(int j = 0; j < 16; j++)
+            for(int j = 0; j < 16; j++){
                 tot += l0[i][16 * ((map >> (j << 2)) & 0b11) + j];
+			}
             
-            l0out[i] = sigmoid(tot);
+            l0out[i] = sigmoid(tot + l0Offset[i]);
         }
-
-        double maxVal = 0;
-        int maxId = 0;
-
-        for(int i = 0; i < 4; i++){
-            double tot = 0;
-            for(int j = 0; j < hiddenLayerSize; j++)
-                tot += l1[i][j] * l0out[j];
-            l1out[i] = sigmoid(tot);
-
-            if(l1out[i] > maxVal){
-                maxVal = l1out[i];
-                maxId = i;
-            }
-        }
-
+		double tot = 0;
+		for(int j = 0; j < hiddenLayerSize; j++)
+			tot += l1[j] * l0out[j];
+		return tot + l1Offset;
+	}
+	
+    vector<char> getMove(game g){
         vector<pair<double, char> > v;
-        
-        for(char i = 0; i < 4; i++)
-            v.push_back(make_pair(l1out[i], i));
+		for(char i = 0; i < 4; i++)
+			v.push_back(make_pair(getScore(g.previewMove(i)), i));
         sort(v.rbegin(), v.rend());
+		
         vector<char> move;
-
         for(char i = 0; i < 4; i++)
             move.push_back(v[i].second);
-
         return move;
     }
 
@@ -75,18 +71,18 @@ class bot{
         for(int i = 0; i < iterations; i++){
             game g;
             while(g.spawn())
-                g.move(getMove(g.map));
+                g.move(getMove(g));
 
             totalScore += g.score;
         }
 
         return totalScore / (double)iterations;
     }
-
+	
     void playAndShow(){
         game g;
         while(g.spawn())
-            g.move(getMove(g.map));
+            g.move(getMove(g));
         g.printMap();
     }
 
@@ -94,13 +90,13 @@ class bot{
         for(int i = 0; i < hiddenLayerSize; i++){
             for(int j = 0; j < 16 * 16; j++)
                 l0[i][j] = fRand();
+            l0Offset[i] = fRand();
         }
 
-        for(int i = 0; i < 4; i++){
-            for(int j = 0; j < hiddenLayerSize; j++)
-                l1[i][j] = fRand();
-        }
-
+        for(int j = 0; j < hiddenLayerSize; j++)
+			l1[j] = fRand();
+		l1Offset = fRand();
+		
         averageScore = 0;
         
         id = rand();
@@ -109,7 +105,7 @@ class bot{
     void updateScore(){
         game g;
         while(g.spawn())
-            g.move(getMove(g.map));
+            g.move(getMove(g));
 
         averageScore *= 1 - CurrGenerationImportance;
         averageScore += log(g.score) * CurrGenerationImportance;
@@ -122,32 +118,39 @@ class bot{
             int parentId = fRand() < 0.5;
             for(int j = 0; j < 16 * 16; j++){
                 l0[i][j] = parents[parentId].l0[i][j];
-
                 if(fRand() < mutationRate)
                     l0[i][j] += fRand(-mutationSize, mutationSize);
             }
+            l0Offset[i] = parents[parentId].l0Offset[i];
+			if(fRand() < mutationRate)
+				l0Offset[i] += fRand(-mutationSize, mutationSize);
 
-            for(int j = 0; j < 4; j++){
-                l1[j][i] = parents[parentId].l1[j][i];
-
-                if(fRand() < mutationRate)
-                    l1[j][i] += fRand(-mutationSize, mutationSize);
-            }
+            l1[i] = parents[parentId].l1[i];
+			if(fRand() < mutationRate)
+				l1[i] += fRand(-mutationSize, mutationSize);
         }
-
-        averageScore = (a.averageScore + b.averageScore) / 2.0;
+		l1Offset = (a.l1Offset + b.l1Offset) / 2.0;
+		if(fRand() < mutationRate)
+			l1Offset += fRand(-mutationSize, mutationSize);
+		
+		averageScore = (a.averageScore + b.averageScore) / 2.0;
         id = rand();
     }
 
-	bool operator<(const bot& b) const {
+	bool operator < (const bot& b) const {
 		return averageScore < b.averageScore;
 	}
 };
 
+vector<bot> bots(populationSize);
+
+void updateScore(int botId){
+	bots[botId].updateScore();
+}
+
 int main(){
     srand(time(NULL));
 
-    vector<bot> bots(32);
 
     int gens = 0;
 
@@ -193,11 +196,11 @@ int main(){
             }
         }
 
-        //for(int i = 0; i < bots.size()-1; i++)
+        //for(int i = 0; i < bots.size()-3; i++)
         //    bots[i].crossOver(bots[bots.size()-1], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
         
         //for(int i = 0; i < bots.size()-3; i++)
-        //    bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.2, mutationMultiplier * 1);
+        //    bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.05, mutationMultiplier * 1);
 
         for(int i = 0; i < bots.size()-8; i++){
             int r = rand();
@@ -209,18 +212,22 @@ int main(){
             if(nxt <= i)
                 nxt = bots.size()-1;
 
-            bots[i].crossOver(bots[nxt], bots[i], mutationMultiplier * 0.2, mutationMultiplier * 1);
+            bots[i].crossOver(bots[nxt], bots[i+8], mutationMultiplier * 0.01, mutationMultiplier * 0.1);
         }
 
-        for(int i = 0; i < bots.size(); i++)
-            bots[i].updateScore();
+		std::thread threads[populationSize];
+        for(int i = 0; i < populationSize; i++)
+            threads[i] = thread(updateScore, i);
+        for(int i = 0; i < populationSize; i++)
+            threads[i].join();
 
         sort(bots.begin(), bots.end());
 
         if(gens % 100 == 0){
+			double eval = bots[bots.size()-1].evaluate(100);
             cout << "Generation: " << gens << endl;
             cout << "Selection score: " << bots[bots.size()-1].averageScore << endl;
-            cout << "Average game score: " << bots[bots.size()-1].evaluate(100) << endl;
+            cout << "Average game score: " << eval << endl;
             cout << "Stability: " << currStability << endl;
             cout << "Mutation rate: " << mutationMultiplier << endl;
             cout << "Curr generation importance: " << CurrGenerationImportance << endl;

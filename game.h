@@ -20,6 +20,7 @@ class game{
     void humanGame();
     void printMap();
     bool spawn();
+	unsigned long long previewMove(char dir);
     game();
 };
 
