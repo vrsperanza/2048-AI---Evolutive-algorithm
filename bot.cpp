@@ -12,10 +12,12 @@ using namespace std;
 
 const int populationSize = 32;
 const double startGenerationImportance = 0.01;
-const int generationImportanceHalfTime = 100000;
-const int hiddenLayerSize = 16;
+const int generationImportanceHalfTime = -1;
+const int hiddenLayerSize = 2;
 double currGenerationImportance = startGenerationImportance;
 
+default_random_engine generator;
+normal_distribution<double> distribution(0.0,1);
 double fRand(double fMin=0, double fMax=1)
 {
     double f = (double)rand() / RAND_MAX;
@@ -88,13 +90,13 @@ class bot{
     bot(){
         for(int i = 0; i < hiddenLayerSize; i++){
             for(int j = 0; j < 16 * 16; j++)
-                l0[i][j] = fRand();
-            l0Offset[i] = 0;
+                l0[i][j] = distribution(generator);
+            l0Offset[i] = distribution(generator);
         }
 
         for(int j = 0; j < hiddenLayerSize; j++)
-			l1[j] = fRand();
-		l1Offset = 0;
+			l1[j] = distribution(generator);
+		l1Offset = distribution(generator);
 		
         averageScore = 0;
     }
@@ -109,27 +111,19 @@ class bot{
 		averageScore += g.score * currGenerationImportance;
     }
 
-    void crossOver(bot a, bot b, double mutationRate, double mutationSize){
+    void crossOver(bot a, bot b, double mutationSize){
         bot parents[2] = {a, b};
 
         for(int i = 0; i < hiddenLayerSize; i++){
             int parentId = fRand() < 0.5;
             for(int j = 0; j < 16 * 16; j++){
-                l0[i][j] = parents[parentId].l0[i][j];
-                if(fRand() < mutationRate)
-                    l0[i][j] += fRand(-mutationSize, mutationSize);
+                l0[i][j] = parents[parentId].l0[i][j] + mutationSize * distribution(generator);
             }
-            l0Offset[i] = parents[parentId].l0Offset[i];
-			if(fRand() < mutationRate)
-				l0Offset[i] += fRand(-mutationSize, mutationSize);
+            l0Offset[i] = parents[parentId].l0Offset[i] + mutationSize * distribution(generator);
 
-            l1[i] = parents[parentId].l1[i];
-			if(fRand() < mutationRate)
-				l1[i] += fRand(-mutationSize, mutationSize);
+            l1[i] = parents[parentId].l1[i] + mutationSize * distribution(generator);
         }
-		l1Offset = (a.l1Offset + b.l1Offset) / 2.0;
-		if(fRand() < mutationRate)
-			l1Offset += fRand(-mutationSize, mutationSize);
+		l1Offset = ((a.l1Offset + b.l1Offset) / 2.0) + mutationSize * distribution(generator);
     }
 
 	bool operator < (const bot& b) const {
@@ -145,7 +139,7 @@ void updateScore(int botId){
 
 int main(){
     srand(time(NULL));
-
+	
     int gens = 0;
 
     vector<double> bestAverageScoreHistory;
@@ -158,16 +152,19 @@ int main(){
 	int bestScore = 0;
 	
     while(1){
-        currGenerationImportance = startGenerationImportance * generationImportanceHalfTime/double(generationImportanceHalfTime+gens);
+		if(generationImportanceHalfTime > 0)
+			currGenerationImportance = startGenerationImportance * generationImportanceHalfTime/double(generationImportanceHalfTime+gens);
 		
 		if(bestScore < bots[populationSize-1].averageScore){
 			bestScore = bots[populationSize-1].averageScore;
 			currStability = 0;
+			mutationFactor = 0;
+			mutationMultiplier = 1;
 		}
 		else
 			currStability++;
 
-        if(currStability >= 500){
+        if(currStability >= 300){
             mutationFactor++;
             currStability = 0;
 
@@ -182,12 +179,6 @@ int main(){
             }
         }
 
-        //for(int i = 0; i < bots.size()-3; i++)
-        //    bots[i].crossOver(bots[bots.size()-1], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
-        
-        //for(int i = 0; i < bots.size()-3; i++)
-        //    bots[i].crossOver(bots[i + 1 + rand()%(bots.size()-i-1)], bots[i], mutationMultiplier * 0.05, mutationMultiplier * 1);
-
         for(int i = 0; i < bots.size()-8; i++){
             int r = rand();
             int nxt = bots.size()-1;
@@ -198,7 +189,7 @@ int main(){
             if(nxt <= i)
                 nxt = bots.size()-1;
 
-            bots[i].crossOver(bots[nxt], bots[i], mutationMultiplier * 0.1, mutationMultiplier * 1);
+            bots[i].crossOver(bots[nxt], bots[i], mutationMultiplier * 0.1);
         }
 		
 		thread threads[populationSize];
