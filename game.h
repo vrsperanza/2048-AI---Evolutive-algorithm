@@ -23,5 +23,6 @@ class game{
 	unsigned long long previewMove(char dir);
     game();
 };
+char getMap(unsigned long long map, char i, char j, char direction);
 
 #endif

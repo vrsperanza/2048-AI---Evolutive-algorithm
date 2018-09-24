@@ -13,7 +13,7 @@ using namespace std;
 const int populationSize = 32;
 const double startGenerationImportance = 0.01;
 const int generationImportanceHalfTime = -1;
-const int hiddenLayerSize = 2;
+const int hiddenLayerSize = 1;
 double currGenerationImportance = startGenerationImportance;
 
 default_random_engine generator;
@@ -29,11 +29,10 @@ class bot{
 
     #define sigmoid(x) 1 / (1 + exp((double) -x))
 
-    double l0[hiddenLayerSize][16 * 16];
+    double l0[hiddenLayerSize][16][16];
     double l0Offset[hiddenLayerSize];
     double l0out[hiddenLayerSize];
     double l1[hiddenLayerSize];
-    double l1Offset;
 
     double averageScore = 0;
 
@@ -41,18 +40,20 @@ class bot{
 		if(map == 0)
 			return -1;
 		
-        for(int i = 0; i < hiddenLayerSize; i++){
+        for(int l = 0; l < hiddenLayerSize; l++){
             double tot = 0;
-            for(int j = 0; j < 16; j++){
-                tot += l0[i][16 * ((map >> (j << 2)) & 0b11) + j];
-			}
+            for(int i = 0; i < 4; i++){
+                for(int j = 0; j < 4; j++){
+                    tot += l0[l][4*i + j][getMap(map, i, j, 0)];
+                }
+            }
             
-            l0out[i] = sigmoid(tot + l0Offset[i]);
+            l0out[l] = sigmoid(tot + l0Offset[l]);
         }
 		double tot = 0;
 		for(int j = 0; j < hiddenLayerSize; j++)
 			tot += l1[j] * l0out[j];
-		return tot + l1Offset;
+		return tot;
 	}
 	
     vector<char> getMove(game g){
@@ -89,14 +90,14 @@ class bot{
 
     bot(){
         for(int i = 0; i < hiddenLayerSize; i++){
-            for(int j = 0; j < 16 * 16; j++)
-                l0[i][j] = distribution(generator);
+            for(int j = 0; j < 16; j++)
+                for(int k = 0; k < 16; k++)
+                    l0[i][j][k] = distribution(generator);
             l0Offset[i] = distribution(generator);
         }
 
         for(int j = 0; j < hiddenLayerSize; j++)
 			l1[j] = distribution(generator);
-		l1Offset = distribution(generator);
 		
         averageScore = 0;
     }
@@ -116,14 +117,13 @@ class bot{
 
         for(int i = 0; i < hiddenLayerSize; i++){
             int parentId = fRand() < 0.5;
-            for(int j = 0; j < 16 * 16; j++){
-                l0[i][j] = parents[parentId].l0[i][j] + mutationSize * distribution(generator);
-            }
+            for(int j = 0; j < 16; j++)
+                for(int k = 0; k < 16; k++)
+                    l0[i][j][k] = parents[parentId].l0[i][j][k] + mutationSize * distribution(generator);
             l0Offset[i] = parents[parentId].l0Offset[i] + mutationSize * distribution(generator);
 
             l1[i] = parents[parentId].l1[i] + mutationSize * distribution(generator);
         }
-		l1Offset = ((a.l1Offset + b.l1Offset) / 2.0) + mutationSize * distribution(generator);
     }
 
 	bool operator < (const bot& b) const {
@@ -164,7 +164,7 @@ int main(){
 		else
 			currStability++;
 
-        if(currStability >= 300){
+        if(currStability >= 500){
             mutationFactor++;
             currStability = 0;
 

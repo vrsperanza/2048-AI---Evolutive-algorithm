@@ -26,6 +26,15 @@ char game::getMap(char i, char j){
     }
 }
 
+char getMap(unsigned long long map, char i, char j, char direction){
+    switch(direction){
+        case 0: return (map >> up(i, j)) & 0xF;
+        case 1: return (map >> left(i, j)) & 0xF;
+        case 2: return (map >> down(i, j)) & 0xF;
+        case 3: return (map >> right(i, j)) & 0xF;
+    }
+}
+
 void game::setMap(char i, char j, char newVal){
     switch(direction){
         case 0: map = ((map & ~(((long long)0xF) << up(i, j))) | ((long long)newVal << up(i, j))); return;
