@@ -23,6 +23,8 @@ class game{
 	unsigned long long previewMove(char dir);
     game();
 };
-char getMap(unsigned long long map, char i, char j, char direction);
-
+char getMap(const unsigned long long map, char i, char j);
+unsigned long long rotate(const unsigned long long map);
+unsigned long long mirror(const unsigned long long map);
+unsigned long long standardMap(const unsigned long long map);
 #endif

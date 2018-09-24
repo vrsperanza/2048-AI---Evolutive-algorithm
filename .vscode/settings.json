@@ -15,7 +15,10 @@
         "xlocale": "cpp",
         "xlocnum": "cpp",
         "ostream": "cpp",
-        "xmemory0": "cpp"
+        "xmemory0": "cpp",
+        "limits": "cpp",
+        "chrono": "cpp",
+        "xtime": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

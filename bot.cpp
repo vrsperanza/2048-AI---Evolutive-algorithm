@@ -13,7 +13,7 @@ using namespace std;
 const int populationSize = 32;
 const double startGenerationImportance = 0.01;
 const int generationImportanceHalfTime = -1;
-const int hiddenLayerSize = 1;
+const int hiddenLayerSize = 2;
 double currGenerationImportance = startGenerationImportance;
 
 default_random_engine generator;
@@ -31,26 +31,26 @@ class bot{
 
     double l0[hiddenLayerSize][16][16];
     double l0Offset[hiddenLayerSize];
-    double l0out[hiddenLayerSize];
     double l1[hiddenLayerSize];
 
     double averageScore = 0;
 
-	double getScore(long long map){
+	double getScore(const unsigned long long map){
 		if(map == 0)
-			return -1;
+			return numeric_limits<double>::lowest();
+
+        unsigned long long standard = standardMap(map);
 		
 		double result = 0;
         for(int l = 0; l < hiddenLayerSize; l++){
             double tot = 0;
             for(int i = 0; i < 4; i++){
                 for(int j = 0; j < 4; j++){
-                    tot += l0[l][4*i + j][getMap(map, i, j, 0)];
+                    tot += l0[l][4*i + j][getMap(standard, i, j)];
                 }
             }
             
-            l0out[l] = sigmoid(tot + l0Offset[l]);
-			result += l1[l] * l0out[l];
+			result += (tot + l0Offset[l]) > 0;
         }
 		return result;
 	}
@@ -110,7 +110,7 @@ class bot{
 		averageScore += g.score * currGenerationImportance;
     }
 
-    void crossOver(bot a, bot b, double mutationSize){
+    void crossOver(const bot & a, const bot & b, double mutationSize){
         for(int i = 0; i < hiddenLayerSize; i++){
             for(int j = 0; j < 16; j++)
                 for(int k = 0; k < 16; k++)
@@ -167,8 +167,7 @@ int main(){
                 mutationMultiplier = (1 << (mutationFactor-20));
             else{
                 mutationFactor = 0;
-
-                cout << "MUTATION RESET" << endl;
+                mutationMultiplier = 1;
             }
         }
 
@@ -182,7 +181,7 @@ int main(){
             if(nxt <= i)
                 nxt = bots.size()-1;
 
-            bots[i].crossOver(bots[nxt], bots[i], mutationMultiplier * 0.1);
+            bots[i].crossOver(bots[nxt], bots[i], mutationMultiplier);
         }
 		
 		thread threads[populationSize];
