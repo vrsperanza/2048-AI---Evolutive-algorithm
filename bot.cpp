@@ -40,6 +40,7 @@ class bot{
 		if(map == 0)
 			return -1;
 		
+		double result = 0;
         for(int l = 0; l < hiddenLayerSize; l++){
             double tot = 0;
             for(int i = 0; i < 4; i++){
@@ -49,11 +50,9 @@ class bot{
             }
             
             l0out[l] = sigmoid(tot + l0Offset[l]);
+			result += l1[l] * l0out[l];
         }
-		double tot = 0;
-		for(int j = 0; j < hiddenLayerSize; j++)
-			tot += l1[j] * l0out[j];
-		return tot;
+		return result;
 	}
 	
     vector<char> getMove(game g){
@@ -108,21 +107,17 @@ class bot{
             g.move(getMove(g));
 
         averageScore *= 1 - currGenerationImportance;
-        //averageScore += log(g.score) * currGenerationImportance;
 		averageScore += g.score * currGenerationImportance;
     }
 
     void crossOver(bot a, bot b, double mutationSize){
-        bot parents[2] = {a, b};
-
         for(int i = 0; i < hiddenLayerSize; i++){
-            int parentId = fRand() < 0.5;
             for(int j = 0; j < 16; j++)
                 for(int k = 0; k < 16; k++)
-                    l0[i][j][k] = parents[parentId].l0[i][j][k] + mutationSize * distribution(generator);
-            l0Offset[i] = parents[parentId].l0Offset[i] + mutationSize * distribution(generator);
+                    l0[i][j][k] = ((a.l0[i][j][k] + b.l0[i][j][k]) / 2.0) + mutationSize * distribution(generator) * distribution(generator);
+            l0Offset[i] = ((a.l0Offset[i] + b.l0Offset[i]) / 2.0) + mutationSize * distribution(generator) * distribution(generator);
 
-            l1[i] = parents[parentId].l1[i] + mutationSize * distribution(generator);
+            l1[i] = ((a.l1[i] + b.l1[i]) / 2.0) + mutationSize * distribution(generator) * distribution(generator);
         }
     }
 
@@ -142,14 +137,12 @@ int main(){
 	
     int gens = 0;
 
-    vector<double> bestAverageScoreHistory;
-
     double mutationMultiplier = 1;
     int mutationFactor = 0;
 
     int currStability = 0;
 	
-	int bestScore = 0;
+	double bestScore = 0;
 	
     while(1){
 		if(generationImportanceHalfTime > 0)
@@ -164,7 +157,7 @@ int main(){
 		else
 			currStability++;
 
-        if(currStability >= 500){
+        if(currStability >= 1000){
             mutationFactor++;
             currStability = 0;
 
