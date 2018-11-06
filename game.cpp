@@ -104,10 +104,6 @@ unsigned long long game::previewMove(char dir){
 }
 
 void game::printMap(){
-    //string s = direction == 0 ? "UP" : direction == 1 ? "LEFT" : direction == 2 ? "DOWN" : "RIGHT";
-    //cout << "Move: " << s << endl;
-
-
     cout << "Score: " << score << endl;
 
     for(int i = 0; i < 4; i++){
@@ -120,21 +116,7 @@ void game::printMap(){
         }
         cout << endl;
     }
-    cout << "--------" << endl;
 
-    map = standardMap(map);
-    cout << "Score: " << score << endl;
-
-    for(int i = 0; i < 4; i++){
-        for(int j = 0; j < 4; j++){
-            int x = (1 << (int)getMapNorm(i, j));
-            if(x == 1)
-                cout << "*\t";
-            else
-                cout << x << "\t";
-        }
-        cout << endl;
-    }
     cout << "------------------------------------------------------" << endl;
 }
 

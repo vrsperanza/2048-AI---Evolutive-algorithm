@@ -10,16 +10,16 @@
 
 using namespace std;
 
-const int populationSize = 32;
-const double startGenerationImportance = 0.01;
-const int generationImportanceHalfTime = -1;
+int populationSize;
+double startGenerationImportance;
+int generationImportanceHalfTime;
+int trainingIterations;
+double currGenerationImportance;
 const int hiddenLayerSize = 2;
-double currGenerationImportance = startGenerationImportance;
 
 default_random_engine generator;
-normal_distribution<double> distribution(0.0,1);
-double fRand(double fMin=0, double fMax=1)
-{
+normal_distribution<double> distribution(0,1);
+double fRand(double fMin=0, double fMax=1){
     double f = (double)rand() / RAND_MAX;
     return fMin + f * (fMax - fMin);
 }
@@ -35,6 +35,7 @@ class bot{
 
     double averageScore = 0;
 
+    // Recupera a pontuação dada pela rede neural para um certo tabuleiro
 	double getScore(const unsigned long long map){
 		if(map == 0)
 			return numeric_limits<double>::lowest();
@@ -55,6 +56,8 @@ class bot{
 		return result;
 	}
 	
+    // Calcula a pontuação de cada tabuleiro resultante de cada movimento
+    // E retorna a ordem em que os movimentos foram pontuados.
     vector<char> getMove(game g){
         vector<pair<double, char> > v;
 		for(char i = 0; i < 4; i++)
@@ -67,6 +70,7 @@ class bot{
         return move;
     }
 
+    // Avalia o desempenho do robo em "iterations" jogos
     double evaluate(int iterations){
         int totalScore = 0;
         for(int i = 0; i < iterations; i++){
@@ -80,6 +84,7 @@ class bot{
         return totalScore / (double)iterations;
     }
 	
+    // Simula um jogo e mostra o resultado final
     void playAndShow(){
         game g;
         while(g.spawn())
@@ -87,6 +92,19 @@ class bot{
         g.printMap();
     }
 
+    void showoff(){
+        game g;
+        while(g.spawn()){
+            g.printMap();
+            getchar();
+            g.move(getMove(g));
+        }
+        g.printMap();
+
+        cout << "Game over, final score: " << g.score << endl;
+    }
+
+    // Instancia um robô vazio
     bot(){
         for(int i = 0; i < hiddenLayerSize; i++){
             for(int j = 0; j < 16; j++)
@@ -101,6 +119,8 @@ class bot{
         averageScore = 0;
     }
 
+    // Simula um jogo e adiciona esse jogo a pontuação
+    // atual do robo, de acordo com a importância da geração atual
     void updateScore(){
         game g;
         while(g.spawn())
@@ -110,14 +130,18 @@ class bot{
 		averageScore += g.score * currGenerationImportance;
     }
 
+    // Cruza dois robos, transformando essa instancia no filho de ambos
+    // Ao cruzar seleciona aleatóriamente quanto do pai ou da mãe será
+    // e soma uma mutação a cada peso de cada neurônio
     void crossOver(const bot & a, const bot & b, double mutationSize){
         for(int i = 0; i < hiddenLayerSize; i++){
+            double aWeight = fRand();
             for(int j = 0; j < 16; j++)
                 for(int k = 0; k < 16; k++)
-                    l0[i][j][k] = ((a.l0[i][j][k] + b.l0[i][j][k]) / 2.0) + mutationSize * distribution(generator) * distribution(generator);
-            l0Offset[i] = ((a.l0Offset[i] + b.l0Offset[i]) / 2.0) + mutationSize * distribution(generator) * distribution(generator);
+                    l0[i][j][k] = (aWeight * a.l0[i][j][k] + (1 - aWeight) * b.l0[i][j][k]) + mutationSize * distribution(generator) * distribution(generator);
+            l0Offset[i] = (aWeight * a.l0Offset[i] + (1 - aWeight) * b.l0Offset[i]) + mutationSize * distribution(generator) * distribution(generator);
 
-            l1[i] = ((a.l1[i] + b.l1[i]) / 2.0) + mutationSize * distribution(generator) * distribution(generator);
+            l1[i] = (aWeight * a.l1[i] + (1 - aWeight) * b.l1[i]) + mutationSize * distribution(generator) * distribution(generator);
         }
     }
 
@@ -126,15 +150,27 @@ class bot{
 	}
 };
 
-vector<bot> bots(populationSize);
+vector<bot> bots;
 
 void updateScore(int botId){
 	bots[botId].updateScore();
 }
 
 int main(){
+    cout << "Population size = ? (default 32)" << endl;
+    cin >> populationSize;
+    cout << "Start generation importance = ? (default 0.01)" << endl;
+    cin >> startGenerationImportance;
+    cout << "Generation importance half time = ? (default -1 (disabled))" << endl;
+    cin >> generationImportanceHalfTime;
+    cout << "Training iterations = ? (default 5000)" << endl;
+    cin >> trainingIterations;
+
     srand(time(NULL));
-	
+
+	currGenerationImportance = startGenerationImportance;
+    bots.resize(populationSize);
+
     int gens = 0;
 
     double mutationMultiplier = 1;
@@ -144,10 +180,12 @@ int main(){
 	
 	double bestScore = 0;
 	
-    while(1){
+    while(gens <= trainingIterations){
+        // Importancia da geração atual diminui com o tempo
 		if(generationImportanceHalfTime > 0)
 			currGenerationImportance = startGenerationImportance * generationImportanceHalfTime/double(generationImportanceHalfTime+gens);
 		
+        // Mutação variavel
 		if(bestScore < bots[populationSize-1].averageScore){
 			bestScore = bots[populationSize-1].averageScore;
 			currStability = 0;
@@ -171,7 +209,11 @@ int main(){
             }
         }
 
-        for(int i = 0; i < bots.size()-8; i++){
+        // Metade da população cruza com os melhores,
+        // o melhor tendo 50% de chance de ser escolhido,
+        // o segundo melhor 25% e assim por diante.
+        // A outra metade é substituida por seus filhos
+        for(int i = 0; i < 0.5 * bots.size(); i++){
             int r = rand();
             int nxt = bots.size()-1;
             while(r & 1){
@@ -184,16 +226,24 @@ int main(){
             bots[i].crossOver(bots[nxt], bots[i], mutationMultiplier);
         }
 		
+        // Cálculo da pontuação de cada bot.
+        // Região de crítica de processamento, paralelizada.
+        // Testamos o métodos explicado em sala para herança e
+        // nesse caso, aparentemente, calcular o valor do atual
+        // sendo uma porcentagem do valor antigo completada pelo
+        // valor novo funcionou melhor.
 		thread threads[populationSize];
         for(int i = 0; i < populationSize; i++)
             threads[i] = thread(updateScore, i);
         for(int i = 0; i < populationSize; i++)
             threads[i].join();
 		
+        // Ordena os robos reavaliados
         sort(bots.begin(), bots.end());
 
+        // A cada 100 gerações, imprime os dados na tela e simula um jogo,
+        // imprimindo seu estado final.
         if(gens % 100 == 0){
-			
 			double eval = bots[bots.size()-1].evaluate(100);
             cout << "Generation: " << gens << endl;
             cout << "Best selection score seen: " << bestScore << endl;
@@ -206,4 +256,8 @@ int main(){
         }
         gens++;
     }
+
+    bot bestBot = bots[bots.size()-1];
+    while(1)
+        bestBot.showoff();
 }
