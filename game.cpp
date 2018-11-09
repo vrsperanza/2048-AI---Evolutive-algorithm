@@ -26,6 +26,14 @@ char game::getMap(char i, char j){
     }
 }
 
+char getMap(const unsigned long long map, char i, char j){
+    return (map >> left(i, j)) & 0xF;
+}
+
+void setMap(unsigned long long & map, int i, int j, char newVal){
+    map = ((map & ~(((long long)0xF) << left(i, j))) | (((long long)newVal) << left(i, j)));
+}
+
 void game::setMap(char i, char j, char newVal){
     switch(direction){
         case 0: map = ((map & ~(((long long)0xF) << up(i, j))) | ((long long)newVal << up(i, j))); return;
@@ -96,8 +104,6 @@ unsigned long long game::previewMove(char dir){
 }
 
 void game::printMap(){
-    //string s = direction == 0 ? "UP" : direction == 1 ? "LEFT" : direction == 2 ? "DOWN" : "RIGHT";
-    //cout << "Move: " << s << endl;
     cout << "Score: " << score << endl;
 
     for(int i = 0; i < 4; i++){
@@ -110,6 +116,7 @@ void game::printMap(){
         }
         cout << endl;
     }
+
     cout << "------------------------------------------------------" << endl;
 }
 
@@ -168,4 +175,46 @@ void game::humanGame(){
     }
 
     cout << g.score << endl;
+}
+
+unsigned long long rotate(const unsigned long long map){
+    unsigned long long result;
+
+    for(int i = 0; i < 4; i++)
+        for(int j = 0; j < 4; j++)
+            setMap(result, i, j, getMap(map, j, 3-i));
+
+    return result;
+}
+
+unsigned long long mirror(const unsigned long long map){
+    unsigned long long result;
+
+    for(int i = 0; i < 4; i++)
+        for(int j = 0; j < 4; j++)
+            setMap(result, i, j, getMap(map, i, 3-j));
+
+    return result;
+}
+
+unsigned long long standardMap(const unsigned long long map){
+    unsigned long long result = -1;
+    unsigned long long rot = map;
+
+    result = min(result, rot);
+    
+    for(int i = 0; i < 3; i++){
+        rot = rotate(rot);
+        result = min(result, rot);
+    }
+
+    rot = mirror(rot);
+    result = min(result, rot);
+
+    for(int i = 0; i < 3; i++){
+        rot = rotate(rot);
+        result = min(result, rot);
+    }
+
+    return result;
 }
